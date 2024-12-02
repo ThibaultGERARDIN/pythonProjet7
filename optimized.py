@@ -1,4 +1,5 @@
 import csv
+import math
 
 
 def get_data():
@@ -16,6 +17,25 @@ def get_data():
     return actions
 
 
+def get_data_old(filename):
+    # Read CSV file and return usable data : action = (name, cost, gain)
+    # => from old dataset
+    actions = []
+    with open(filename, mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            name = row["name"]
+            cost = float(row["price"])
+            percentage = row["profit"]
+            gain_percentage = float(percentage) / 100
+            gain = round(cost * gain_percentage, 2)
+            if cost <= 0:
+                pass
+            else:
+                actions.append((name, cost, gain))
+    return actions
+
+
 def get_best_combination(actions, max_budget):
     n = len(actions)
     # Create a matrix of size (n+1)(max_budget +1) and initialize it at 0
@@ -24,11 +44,12 @@ def get_best_combination(actions, max_budget):
     # Fill the matrix while choosing which action is bought
     for i in range(1, n + 1):
         name, cost, gain = actions[i - 1]
+        rounded_cost = math.ceil(cost)
         for b in range(max_budget + 1):
-            if cost <= b:
+            if rounded_cost <= b:
                 # Either buy or not the action (maximum gain of the two)
                 matrix[i][b] = max(
-                    matrix[i - 1][b], matrix[i - 1][b - cost] + gain
+                    matrix[i - 1][b], matrix[i - 1][b - rounded_cost] + gain
                 )
             else:
                 # Can't buy the action
@@ -38,19 +59,24 @@ def get_best_combination(actions, max_budget):
     combination = []
     b = max_budget
     for i in range(n, 0, -1):
-        if matrix[i][b] != matrix[i - 1][b]:
+        if matrix[int(i)][int(b)] != matrix[int(i - 1)][int(b)]:
             combination.append(actions[i - 1])
             b -= actions[i - 1][1]
 
     best_gain = round(matrix[n][max_budget], 2)
-    return combination, best_gain
+    total_cost = 0
+    for action in combination:
+        total_cost += action[1]
+    return combination, best_gain, total_cost
 
 
 def main():
     max_budget = 500
 
-    actions = get_data()
-    best_combination, best_gain = get_best_combination(actions, max_budget)
+    actions = get_data_old("dataset1.csv")
+    best_combination, best_gain, total_cost = get_best_combination(
+        actions, max_budget
+    )
 
     print("Meilleure combinaison d'actions :")
     for action in best_combination:
@@ -59,6 +85,7 @@ def main():
             f" Bénéfice: {action[2]} euros)"
         )
 
+    print(f"\nCoût total : {total_cost} euros")
     print(f"\nBénéfice total : {best_gain} euros")
 
 
